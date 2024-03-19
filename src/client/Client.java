@@ -44,7 +44,7 @@ public class Client extends Application {
 
 
     public static void main(String[] args) throws IOException {
-
+        System.out.println("Dime tu nombre de usuario: ");
         Scanner sc  = new Scanner(System.in);
         identifier = sc.nextLine();
 
@@ -53,16 +53,9 @@ public class Client extends Application {
         clientThread.start();
 
         // send initialization message to the server
-        String error = "Ese usuario no está displonible, introduzca uno nuevo";
-        byte[] errorBytes = error.getBytes();
-
-        /*DatagramPacket packet = new DatagramPacket(errorBytes, errorBytes.length);
-        do{
-            byte[] uuid = ("init; " + identifier).getBytes();
-            DatagramPacket initialize = new DatagramPacket(uuid, uuid.length, address, SERVER_PORT);
-            socket.send(initialize);
-        }
-        while (socket.receive(packet.getData()) != );*/
+        byte[] uuid = ("init; " + identifier).getBytes();
+        DatagramPacket initialize = new DatagramPacket(uuid, uuid.length, address, SERVER_PORT);
+        socket.send(initialize);
 
         launch(); // launch GUI
 
@@ -79,7 +72,7 @@ public class Client extends Application {
         inputBox.setMaxWidth(500);
         inputBox.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
-                String temp = identifier + ";" + inputBox.getText(); // message to send
+                String temp = identifier + ": " + inputBox.getText(); // message to send
                 messageArea.setText(messageArea.getText() + inputBox.getText() + "\n"); // update messages on screen
                 byte[] msg = temp.getBytes(); // convert to bytes
                 inputBox.setText(""); // remove text from input box

@@ -78,20 +78,20 @@ public class Server {
     private static void validateUser(String message, DatagramPacket packet) {
         String[] splitMessage = message.split(" ");
         String error = "Ese usuario no está displonible, introduzca uno nuevo";
-        byte[] errorBytes = error.getBytes();
         String correct = "Username set to: " + splitMessage[1];
         int userPort = packet.getPort();  // get port from the packet
         for (int forward_port : userPorts) {
             if (forward_port == userPort) {
                 if (users.contains(splitMessage[1])){
-                    DatagramPacket forward = new DatagramPacket(errorBytes, errorBytes.length, address, forward_port);
+                    DatagramPacket forward = new DatagramPacket(error.getBytes(), error.getBytes().length, address, forward_port);
                     try {
                         socket.send(forward);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                 } else {
-                    DatagramPacket forward = new DatagramPacket(errorBytes, errorBytes.length, address, forward_port);
+                    users.add(splitMessage[1]);
+                    DatagramPacket forward = new DatagramPacket(correct.getBytes(), correct.getBytes().length, address, forward_port);
                     try {
                         socket.send(forward);
                     } catch (IOException e) {
