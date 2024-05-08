@@ -1,18 +1,10 @@
 package client;
 
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-
 import java.io.IOException;
 import java.net.*;
 import java.util.Scanner;
 
-public class Client extends Application {
+public class Client {
 
     private static final DatagramSocket socket;
 
@@ -24,6 +16,8 @@ public class Client extends Application {
         }
     }
 
+    static Scanner sc = new Scanner(System.in);
+
     private static final InetAddress address;
 
     static {
@@ -34,61 +28,59 @@ public class Client extends Application {
         }
     }
 
-    private static String identifier;
-
+    private static String username;
     private static final int SERVER_PORT = 8000; // send to server
-
-    private static final TextArea messageArea = new TextArea();
-
-    private static final TextField inputBox = new TextField();
+    private static byte[] incoming = new byte[256];
 
 
     public static void main(String[] args) throws IOException {
         System.out.println("Dime tu nombre de usuario: ");
-        Scanner sc  = new Scanner(System.in);
-        identifier = sc.nextLine();
+        username = sc.nextLine();
 
-        // thread for receiving messages
-        ClientThread clientThread = new ClientThread(socket, messageArea);
-        clientThread.start();
+        // send initialization message to the server and validate username
+        String received;
+        do {
+            byte[] uuid = ("init; " + username).getBytes();
+            DatagramPacket initialize = new DatagramPacket(uuid, uuid.length, address, SERVER_PORT);
+            socket.send(initialize);
 
-        // send initialization message to the server
-        byte[] uuid = ("init; " + identifier).getBytes();
-        DatagramPacket initialize = new DatagramPacket(uuid, uuid.length, address, SERVER_PORT);
-        socket.send(initialize);
-
-        launch(); // launch GUI
-
-    }
-
-
-    @Override
-    public void start(Stage primaryStage) {
-
-        messageArea.setMaxWidth(500);
-        messageArea.setEditable(false);
-
-
-        inputBox.setMaxWidth(500);
-        inputBox.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                String temp = identifier + ": " + inputBox.getText(); // message to send
-                messageArea.setText(messageArea.getText() + inputBox.getText() + "\n"); // update messages on screen
-                byte[] msg = temp.getBytes(); // convert to bytes
-                inputBox.setText(""); // remove text from input box
-
-                // create a packet & send
-                DatagramPacket send = new DatagramPacket(msg, msg.length, address, SERVER_PORT);
-                try {
-                    socket.send(send);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            DatagramPacket packet = new DatagramPacket(incoming, incoming.length);
+            try {
+                socket.receive(packet);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        });
-        // put everything on screen
-        Scene scene = new Scene(new VBox(35, messageArea, inputBox), 550, 300);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+
+            socket.receive(packet);
+            received = new String(packet.getData(), 0, packet.getLength()) + "\n";
+            System.out.println(received);
+        }while (received.equals("Ese usuario no está displonible, introduzca uno nuevo"));
+        try {
+            DatagramSocket socket = null;
+
+            while (true) {
+                String msgSalida = sc.nextLine();
+                byte[] sendData = msgSalida.getBytes();
+
+                DatagramPacket salida = new DatagramPacket(sendData, sendData.length, address, SERVER_PORT);
+                socket.send(salida);
+
+                byte[] receiveData = new byte[1024];
+                DatagramPacket entrada = new DatagramPacket(receiveData, receiveData.length);
+                socket.receive(entrada);
+
+                String serverMessage = new String(entrada.getData(), 0, entrada.getLength());
+                System.out.println(serverMessage);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+
+        }
+        System.out.println("Fuera del bucle");
+
     }
 }
