@@ -52,22 +52,16 @@ public class Client {
         }while (received.equals("Ese usuario no está displonible, introduzca uno nuevo\n"));
 
         String msgSalida;
-        System.out.println("");
+        ClientThread thread  = new ClientThread(socket);
+        thread.start();
+
         do {
             msgSalida = sc.nextLine();
             byte[] sendData = msgSalida.getBytes();
-
             DatagramPacket salida = new DatagramPacket(sendData, sendData.length, address, SERVER_PORT);
             socket.send(salida);
-
-            byte[] receiveData = new byte[1024];
-            DatagramPacket entrada = new DatagramPacket(receiveData, receiveData.length);
-            socket.receive(entrada);
-
-            String serverMessage = new String(entrada.getData(), 0, entrada.getLength());
-            System.out.println(serverMessage);
         } while (!msgSalida.equals("/exit"));
-
         System.err.println("Fin de ejecución");
+        socket.close();
     }
 }
