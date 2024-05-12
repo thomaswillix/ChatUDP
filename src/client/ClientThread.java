@@ -24,8 +24,10 @@ public class ClientThread extends Thread{
             } catch (IOException e){
                 throw new RuntimeException();
             }
-            message = new String(packet.getData(), 0, packet.getLength()) + "\n";
-            System.out.print(message);
+            message = new String(packet.getData(), 0, packet.getLength());
+            if (message.equals("exit"))
+                System.err.println(message);
+            else System.out.println(message);
         } while (!message.equals("exit"));
     }
 }

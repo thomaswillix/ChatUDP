@@ -1,6 +1,6 @@
 package server;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,6 +8,7 @@ import java.util.HashMap;
 public class Server {
 
     private static byte[] incoming = new byte[256];
+    private static File f = new File("messages.txt");
     private static final int PORT = 8000;
 
     private static DatagramSocket socket;
@@ -19,7 +20,7 @@ public class Server {
             throw new RuntimeException(e);
         }
     }
-
+    private static boolean previousMessages = false;
     private static HashMap<Integer, String> users = new HashMap<>();
 
     private static final InetAddress address;
@@ -52,8 +53,11 @@ public class Server {
 
             if (message.contains("init; ")) {
                 validateUser(message, packet);
-            } else if(message.equals("/exit")){
+                if (previousMessages) showPrevoiusMesssages(socket, packet);
+                saveMessage(users.get(userPort),message);
+            } else if(message.equals("/quit")){
                 String threadFlag = "exit";
+                saveMessage(users.get(userPort), message);
                 byte[] threadFlagBytes = threadFlag.getBytes(); // convert the string to bytes
 
                 // This will terminate the ClientThread
@@ -78,6 +82,7 @@ public class Server {
 
     private static void broadcastMessage(String message, int userPort){
         byte[] byteMessage = message.getBytes(); // convert the string to bytes
+        saveMessage(users.get(userPort),message);
 
         // forward to all other users (except the one who sent the message)
         for (int forward_port : users.keySet()) {
@@ -91,28 +96,63 @@ public class Server {
             }
         }
     }
-
-    private static void validateUser(String message, DatagramPacket packet) {
-        String[] splitMessage = message.split(" ");
-        String error = "Ese usuario no está displonible, introduzca uno nuevo";
-        String correct = "Username set to: " + splitMessage[1];
-
-        if (users.containsValue(splitMessage[1])){
-            DatagramPacket forward = new DatagramPacket(error.getBytes(), error.getBytes().length, address, packet.getPort());
-            try {
-                socket.send(forward);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            users.put(packet.getPort(), splitMessage[1]);
-            DatagramPacket forward = new DatagramPacket(correct.getBytes(), correct.getBytes().length, address, packet.getPort());
-            try {
-                socket.send(forward);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+    private static void saveMessage(String user, String text) {
+        String message = user + ": " + text;
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(f, true));
+            bw.write(message);
+            bw.newLine();
+            bw.close();
+        } catch (IOException e) {
+            System.err.println("Sum' went wrong persisting");
         }
     }
 
+    private static void validateUser(String message, DatagramPacket packet) {
+        String[] splitMessage = message.split(" ");
+        String error = "This user is currently unavailable, please introduce another nickname";
+        String correct = "Username set to: " + splitMessage[1];
+        DatagramPacket forward;
+        if (users.containsValue(splitMessage[1])){
+            forward = new DatagramPacket(error.getBytes(), error.getBytes().length, address, packet.getPort());
+        } else {
+            users.put(packet.getPort(), splitMessage[1]);
+            forward = new DatagramPacket(correct.getBytes(), correct.getBytes().length, address, packet.getPort());
+        }
+
+        if (splitMessage.length>2){
+            String messages = splitMessage[2];
+            if(messages.equalsIgnoreCase("Y")){
+                previousMessages = true;
+            } else {
+                previousMessages = false;
+            }
+        }
+
+
+        try {
+            socket.send(forward);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private static void showPrevoiusMesssages(DatagramSocket socket, DatagramPacket packet) {
+
+        DatagramPacket forward;
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line;
+            try {
+
+                while((line = br.readLine())!=null){
+                    forward = new DatagramPacket(line.getBytes(), line.getBytes().length, address, packet.getPort());
+                    socket.send(forward);
+                }
+            }catch (EOFException e){
+                br.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -34,7 +34,10 @@ public class Client {
 
 
     public static void main(String[] args) throws IOException {
-        System.out.println("Dime tu nombre de usuario: ");
+        System.out.println("Hello!\nWelcome to the best chat ever!\n------------------------ INFO ------------------------\nWhenever you enter the chat you have to put your username and\n" +
+        "optionally a Y indicating you want to read previous messages\nCommands:" +
+                "\n   /nick 'newUsername':  to change your username\n   /quit:  to exit the chat\n");
+        System.out.println("Nickname: ");
 
         // send initialization message to the server and validate username
         String received;
@@ -49,7 +52,7 @@ public class Client {
             received = new String(packet.getData(), 0, packet.getLength()) + "\n";
             System.out.print(received);
 
-        }while (received.equals("Ese usuario no está displonible, introduzca uno nuevo\n"));
+        }while (received.equals("This user is currently unavailable, please introduce another nickname\n"));
 
         String msgSalida;
         ClientThread thread  = new ClientThread(socket);
@@ -60,8 +63,6 @@ public class Client {
             byte[] sendData = msgSalida.getBytes();
             DatagramPacket salida = new DatagramPacket(sendData, sendData.length, address, SERVER_PORT);
             socket.send(salida);
-        } while (!msgSalida.equals("/exit"));
-        System.err.println("Fin de ejecución");
-        socket.close();
+        } while (!msgSalida.equals("/quit"));
     }
 }
