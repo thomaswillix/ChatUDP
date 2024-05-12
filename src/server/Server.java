@@ -71,6 +71,8 @@ public class Server {
                 String userExited = users.get(packet.getPort()) +  " HAS LEFT THE CHAT"; // ANNOUNCEMENT
                 broadcastMessage(userExited, userPort);
                 users.remove(packet.getPort());
+            } else if(message.contains("/nick ")){
+                //rename();
             }
             // forward
             else {
@@ -128,8 +130,6 @@ public class Server {
                 previousMessages = false;
             }
         }
-
-
         try {
             socket.send(forward);
         } catch (IOException e) {
