@@ -30,57 +30,44 @@ public class Client {
 
     private static String username;
     private static final int SERVER_PORT = 8000; // send to server
-    private static byte[] incoming = new byte[256];
+    private static byte[] incoming = new byte[1024];
 
 
     public static void main(String[] args) throws IOException {
         System.out.println("Dime tu nombre de usuario: ");
-        username = sc.nextLine();
 
         // send initialization message to the server and validate username
         String received;
         do {
+            username = sc.nextLine();
             byte[] uuid = ("init; " + username).getBytes();
             DatagramPacket initialize = new DatagramPacket(uuid, uuid.length, address, SERVER_PORT);
             socket.send(initialize);
 
             DatagramPacket packet = new DatagramPacket(incoming, incoming.length);
-            try {
-                socket.receive(packet);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
             socket.receive(packet);
             received = new String(packet.getData(), 0, packet.getLength()) + "\n";
-            System.out.println(received);
-        }while (received.equals("Ese usuario no está displonible, introduzca uno nuevo"));
-        try {
-            DatagramSocket socket = null;
+            System.out.print(received);
 
-            while (true) {
-                String msgSalida = sc.nextLine();
-                byte[] sendData = msgSalida.getBytes();
+        }while (received.equals("Ese usuario no está displonible, introduzca uno nuevo\n"));
 
-                DatagramPacket salida = new DatagramPacket(sendData, sendData.length, address, SERVER_PORT);
-                socket.send(salida);
+        String msgSalida;
+        System.out.println("");
+        do {
+            msgSalida = sc.nextLine();
+            byte[] sendData = msgSalida.getBytes();
 
-                byte[] receiveData = new byte[1024];
-                DatagramPacket entrada = new DatagramPacket(receiveData, receiveData.length);
-                socket.receive(entrada);
+            DatagramPacket salida = new DatagramPacket(sendData, sendData.length, address, SERVER_PORT);
+            socket.send(salida);
 
-                String serverMessage = new String(entrada.getData(), 0, entrada.getLength());
-                System.out.println(serverMessage);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (socket != null && !socket.isClosed()) {
-                socket.close();
-            }
+            byte[] receiveData = new byte[1024];
+            DatagramPacket entrada = new DatagramPacket(receiveData, receiveData.length);
+            socket.receive(entrada);
 
-        }
-        System.out.println("Fuera del bucle");
+            String serverMessage = new String(entrada.getData(), 0, entrada.getLength());
+            System.out.println(serverMessage);
+        } while (!msgSalida.equals("/exit"));
 
+        System.err.println("Fin de ejecución");
     }
 }
